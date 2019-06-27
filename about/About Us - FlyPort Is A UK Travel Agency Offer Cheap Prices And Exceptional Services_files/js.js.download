@@ -1,0 +1,448 @@
+ $(document).ready(function() {
+     var airports=[];
+  $.post("functions/get_airports.php", {}, function(data) {
+   airports = JSON.parse(data);
+   //auto complete
+  var substringMatcher = function(strs) {
+    return function findMatches(q, cb) {
+      var matches, substringRegex;
+      matches = [];
+      substrRegex = new RegExp('^'+q, 'i');
+      $.each(strs, function(i, str) {
+        if (substrRegex.test(str)) {
+          matches.push(str);
+        }
+      });
+      if(matches.length===0){
+          substrRegex = new RegExp(q, 'i');
+            $.each(strs, function(i, str) {
+              if (substrRegex.test(str)) {
+                matches.push(str);
+              }
+            });
+      }
+      cb(matches);
+    };
+  };
+  $('input[name="departure"],input[name="destination"],input[name="departure_airport"],input[name="destination_airport"]').typeahead({
+    hint: true,
+    highlight: true,
+    minLength: 2
+  },
+  {
+    name: 'states',
+    source: substringMatcher(airports)
+  });
+  });
+  $("#flight_searh_form,#frmsearchflights1,#frmsearchflights2,#frmsearchflights3,#request_callback").delegate(".tt-input","blur",function(){
+      var val=$(this).val();
+      if(val!==""){
+          var matched=$.grep(airports, function (e) { 
+              regex = new RegExp('^'+val, 'i');
+              return regex.test(e);
+              
+          });
+        if(matched[0]!==undefined){
+            $(this).typeahead('val', matched[0]);
+        }else{
+            matched=$.grep(airports, function (e) { return e.toLowerCase().indexOf(val.toLowerCase()) >= 0; });
+            if(matched[0]!==undefined){
+            $(this).typeahead('val', matched[0]);
+            }else{
+                $(this).typeahead('val', '');
+            }
+        }
+        $(".tt-menu").hide();
+      }
+  });
+  var hotel_locations=[];
+   $.post("functions/hotel_locations.php", {}, function(data) {
+   hotel_locations = JSON.parse(data);
+  var substringMatcher = function(strs) {
+    return function findMatches(q, cb) {
+      var matches, substringRegex;
+      matches = [];
+      substrRegex = new RegExp('^'+q, 'i');
+      $.each(strs, function(i, str) {
+        if (substrRegex.test(str)) {
+          matches.push(str);
+        }
+      });
+      if(matches.length===0){
+          substrRegex = new RegExp(q, 'i');
+            $.each(strs, function(i, str) {
+              if (substrRegex.test(str)) {
+                matches.push(str);
+              }
+            });
+      }
+      cb(matches);
+    };
+  };
+  $('input[name="hotel"]').typeahead({
+    hint: true,
+    highlight: true,
+    minLength: 1
+  },
+  {
+    name: 'states',
+    source: substringMatcher(hotel_locations)
+  });
+  });	
+  $("#hotel_enquiry_form,#form_hotel_search_result").delegate(".tt-input","blur",function(){
+      var val=$(this).val();
+      if(val!==""){
+          var matched=$.grep(hotel_locations, function (e) { 
+              regex = new RegExp('^'+val, 'i');
+              return regex.test(e);
+              
+          });
+        if(matched[0]!==undefined){
+            $(this).typeahead('val', matched[0]);
+        }else{
+            matched=$.grep(hotel_locations, function (e) { return e.toLowerCase().indexOf(val.toLowerCase()) >= 0; });
+            if(matched[0]!==undefined){
+            $(this).typeahead('val', matched[0]);
+            }else{
+                $(this).typeahead('val', '');
+            }
+        }
+        $(".tt-menu").hide();
+      }
+  });
+  
+  $('input[name="flight_type"]').on('ifChecked',function() {
+   var val = $(this).val();
+   if (val === "One Way") {
+    $("#return_date").val("");
+    $('div[itemref="return_date"]').slideUp();
+   } else {
+    $('div[itemref="return_date"]').slideDown();
+   }
+  });
+  $('input[name="infants"],input[name="adults"],input[name="children"],input[name="phone"]').keypress(function(evt) {
+   evt = (evt) ? evt : window.event;
+   var charCode = (evt.which) ? evt.which : evt.keyCode;
+   if (charCode > 31 && (charCode < 48 || charCode > 57)) {
+    return false;
+   }
+   return true;
+  });
+ });
+
+ function search_flights() {
+     
+  var errMsg = 'Fields with (<span class="clrred">*</span>) are required. <br/><br/>';
+  var isvalid=true;
+  var destination = $("#destination").val();
+  var departure = $("#departure").val();
+  var departure_date = $("#departure_date").val();
+  if (departure === "") {
+      isvalid=false;
+   errMsg += '&bull;&nbsp;&nbsp;Please Enter Departure City.<br/>';
+  }
+  if (destination === "") {
+      isvalid=false;
+    errMsg += '&bull;&nbsp;&nbsp;Please Enter Destination City.<br/>';
+  }
+  if (departure_date === "") {
+      isvalid=false;
+   errMsg += '&bull;&nbsp;&nbsp;Please Enter Departure Date.<br/>';
+  }
+  if($('input[name="flight_type"]:checked').val()==="Round Trip"){
+      if($("#flight_searh_form #return_date").val()===""){
+          isvalid=false;
+         errMsg += '&bull;&nbsp;&nbsp;Please Enter Return Date.<br/>';
+      }
+  }
+  if($("#flight_searh_form #name").length>0&&$("#flight_searh_form #name").val()===""){
+      isvalid=false;
+      errMsg += '&bull;&nbsp;&nbsp;Please Enter Name.<br/>';
+  }
+  if($("#flight_searh_form #email").length>0){
+      if($("#flight_searh_form #email").val()===""){
+          isvalid=false;
+          errMsg += '&bull;&nbsp;&nbsp;Please Enter Email.<br/>';
+      }else if(validate_email($("#email").val())===false){
+          isvalid=false;
+          errMsg += '&bull;&nbsp;&nbsp;Please Enter Valid Email.<br/>';
+      }
+      
+  }
+  if($("#flight_searh_form #phone").length>0&&$("#flight_searh_form #phone").val()===""){
+      isvalid=false;
+      errMsg += '&bull;&nbsp;&nbsp;Please Enter Phone Number.<br/>';
+  }
+  if (isvalid===true) {
+   $("#flight_searh_form").submit();
+  }else{
+      bootbox.alert(errMsg);
+  }
+ }
+function validate_email(val) {
+ var regEx = /^[-a-z0-9~!$%^&*_=+}{\'?]+(\.[-a-z0-9~!$%^&*_=+}{\'?]+)*@([a-z0-9_][-a-z0-9_]*(\.[-a-z0-9_]+)*\.(aero|arpa|biz|com|coop|edu|gov|info|int|mil|museum|name|net|org|pro|travel|mobi|[a-z][a-z])|([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}))(:[0-9]{1,5})?$/i;
+ if (val === '') {
+  $('span[itemref="email"]').html('email is required.');
+ } else if (!regEx.test(val)) {
+  $('span[itemref="email"]').html('Invalid email formate.');
+ } else {
+  $('span[itemref="email"]').html('');
+  return true;
+ }
+ return false;
+}
+function select_flight(dept_name,dept_code,dest_name,dest_code,code,name,price,via_code,via_name,dept_date,banner,cc){    
+    $.post("functions/select_flight.php",{select_flight:"select flight",dept_name:dept_name,dept_code:dept_code,dest_name:dest_name,dest_code:dest_code,code:code,name:name,price:price,via_code:via_code,via_name:via_name,dept_date:dept_date,banner:banner,cc:cc},function(data){
+       window.location.href="deals-flight-enquiry";
+        });
+}
+function request_call_back(dept_name,dept_code,dest_name,dest_code,code,name,price,via_code,via_name,dept_date,banner,cc){
+    
+    $.post("functions/select_flight.php",{select_flight:"select flight",dept_name:dept_name,dept_code:dept_code,dest_name:dest_name,dest_code:dest_code,code:code,name:name,price:price,via_code:via_code,via_name:via_name,dept_date:dept_date,banner:banner,cc:cc},function(data){
+       window.location.href="deals-callback-request";
+        });
+}
+function submit_enquiry(){   
+        var errMsg = 'Fields with (<span class="clrred">*</span>) are required. <br/><br/>';
+            var isvalid=true;
+       if($("#departure_date").length>0&&$("#departure_date").val()===""){
+            isvalid=false;
+           errMsg += '&bull;&nbsp;&nbsp;Please select departure date.<br/>';
+       } 
+       if($("#return_date").length>0&&$("#return_date").val()===""){
+            isvalid=false;
+           errMsg += '&bull;&nbsp;&nbsp;Please select return date.<br/>';
+       } 
+       if($("#name").val()===""){
+           isvalid=false;
+           errMsg += '&bull;&nbsp;&nbsp;Please provide customer name.<br/>';
+       }
+        if($("#email").val()===""){
+               isvalid=false;
+               errMsg += '&bull;&nbsp;&nbsp;Please provide customer email.<br/>';
+           }else if(validate_email($("#email").val())===false){
+               errMsg += '&bull;&nbsp;&nbsp;Please enter valid email.<br/>';
+               isvalid=false;
+           }
+       if($("#phone").val()===""){
+           isvalid=false;
+           errMsg += '&bull;&nbsp;&nbsp;Please provide customer phone.<br/>';
+       }
+       if(isvalid===true){
+           document.getElementById("enquiry_submit_form").submit();
+       }else{
+       bootbox.alert(errMsg);
+  }
+}
+function hotel_enquiry(){
+    var errMsg = 'Fields with (<span class="clrred">*</span>) are required. <br/><br/>';
+    var isvalid=true;
+    var name=$("#hotel_enquiry_form #name").val();
+    var email=$("#hotel_enquiry_form #email").val();
+    var phone=$("#hotel_enquiry_form #phone").val();
+    var hotel=$("#hotel").val();
+    var check_in=$("#hotel_enquiry_form #check_in").val();
+    var check_out=$("#hotel_enquiry_form #check_out").val();
+    var rooms=$('input[name="rooms"]:checked').val();
+    if(hotel===""){
+        isvalid=false;
+        errMsg += '&bull;&nbsp;&nbsp;Please Enter Hotel or City Name.<br/>';
+    }
+    if(check_in===""){
+        isvalid=false;
+        errMsg += '&bull;&nbsp;&nbsp;Please Select Check in Date.<br/>';
+    }
+    if(check_out===""){
+        isvalid=false;
+        errMsg += '&bull;&nbsp;&nbsp;Please Select Check out Date.<br/>';
+    }
+//    rooms=parseInt(rooms);
+//    for(var i=1;i<=rooms;i++){
+//        var isok=true;
+//        var children=$("#Room-"+i+"-Chd option:selected").val();
+//        if(children>0){
+//            for(var j=1;j<=children;j++){
+//                var age= $('#Room-'+i+'-Chd-'+j).val();
+//                if(age===""){
+//                    isok=false;
+//                }
+//            }
+//        }
+//        if(isok===false){
+//            isvalid=false;
+//            errMsg += '&bull;&nbsp;&nbsp;Please Provide Age of Children For Room  '+i+'.<br/>';
+//        }
+//    }
+    if(name===""){
+        isvalid=false;
+        errMsg += '&bull;&nbsp;&nbsp;Please Provide Customer Name.<br/>';
+    }
+    if(email===""){
+        isvalid=false;
+        errMsg += '&bull;&nbsp;&nbsp;Please Provide Customer Email.<br/>';
+    }
+    if(phone===""){
+        isvalid=false;
+        errMsg += '&bull;&nbsp;&nbsp;Please Provide Customer Contact Number.<br/>';
+    }
+    
+    if(isvalid===true){
+           document.getElementById("hotel_enquiry_form").submit();
+       }else{
+      bootbox.alert(errMsg);
+  }
+}
+function car_enquiry(){
+    var errMsg = 'Fields with (<span class="clrred">*</span>) are required. <br/><br/>';
+    var isvalid=true;
+    var name=$("#car_enquiry_form #name").val();
+    var email=$("#car_enquiry_form #email").val();
+    var phone=$("#car_enquiry_form #phone").val();
+    var dept_name=$("#dept_name").val();
+    var dest_name=$("#dest_name").val();
+    var pickup_date=$("#pickup_date").val();
+    var pickoff_date=$("#pickoff_date").val();
+    if(dept_name===""){
+        isvalid=false;
+        errMsg += '&bull;&nbsp;&nbsp;Please Enter Pick-up City or Location Name.<br/>';
+    }
+    if(dest_name===""){
+        isvalid=false;
+        errMsg += '&bull;&nbsp;&nbsp;Please Enter Drop-off City or Location Name.<br/>';
+    }
+    if(pickup_date===""){
+        isvalid=false;
+        errMsg += '&bull;&nbsp;&nbsp;Please Select Pick-up Date.<br/>';
+    }
+    if(pickoff_date===""){
+        isvalid=false;
+        errMsg += '&bull;&nbsp;&nbsp;Please Select Drop-off Date.<br/>';
+    }
+    if(name===""){
+        isvalid=false;
+        errMsg += '&bull;&nbsp;&nbsp;Please Provide Customer Name.<br/>';
+    }
+    if(email===""){
+        isvalid=false;
+        errMsg += '&bull;&nbsp;&nbsp;Please Provide Customer Email.<br/>';
+    }
+    if(phone===""){
+        isvalid=false;
+        errMsg += '&bull;&nbsp;&nbsp;Please Provide Customer Contact Number.<br/>';
+    }
+    if(isvalid===true){
+           document.getElementById("car_enquiry_form").submit();
+       }else{
+      bootbox.alert(errMsg);
+  }
+}
+function news_letter_subscription(){
+    var email = $("#subscriber_email").val();
+    var error_msg = "";
+    if (email === "") {
+        error_msg += "Please Enter Email.<br>";
+        show_alert(error_msg);
+    } else if (validate_email(email) === false) {
+        error_msg += "Invalid Email Formate.<br>";
+        show_alert(error_msg);
+    } else {
+        $("#subscriber_email").val("");
+        error_msg="Thank you for subscribing to our newsletter.";
+             show_alert(error_msg);
+        $.post("functions/subscribe_news_letters.php", {email: email}, function () {
+            
+        });
+    }
+    
+}
+function contact_us()
+{
+    var isvalid=true;
+    var name=$("#name").val();
+    var email=$("#email").val();
+    var phone=$("#phone").val();
+    var subject=$("#subject").val();
+    var message=$("#message").val();
+    if(name===""){
+        isvalid=false;
+        $('span[itemref="name"]').html("Please enter name");
+    }
+    if(email===""){
+        isvalid=false;
+        $('span[itemref="email"]').html("Please enter email");
+    }else if(validate_email(email)===false){
+         $('span[itemref="email"]').html("Invalid email formate");
+          isvalid=false;
+      }
+    if(phone===""){
+        isvalid=false;
+        $('span[itemref="phone"]').html("Please enter phone number");
+    }
+    if(subject===""){
+        isvalid=false;
+        $('span[itemref="subject"]').html("Please enter Subject.");
+    }
+    if(message===""){
+        isvalid=false;
+        $('span[itemref="message"]').html("Please write some Message to contact.");
+    }
+    if(isvalid===true){
+                $.post("functions/contact_us.php",{
+                    name:name,
+                    email:email,
+                    phone:phone,
+                    subject:subject,
+                    message:message
+                },function(data){
+                    $('input,textarea').val("");
+                    $("#contact_us_succcess").slideDown();
+                });
+       }else{
+      show_alert("<b>Please enter all required fields in contact form.</b>");
+  }
+}
+function submit_request_callback(){
+    var errMsg = 'Fields with (<span class="clrred">*</span>) are required. <br/><br/>';
+  var isvalid=true;
+  var destination = $("#destination").val();
+  var departure = $("#departure").val();
+  var departure_date = $("#departure_date").val();
+  if (departure === "") {
+      isvalid=false;
+   errMsg += '&bull;&nbsp;&nbsp;Please Enter Departure City.<br/>';
+  }
+  if (destination === "") {
+      isvalid=false;
+    errMsg += '&bull;&nbsp;&nbsp;Please Enter Destination City.<br/>';
+  }
+  if (departure_date === "") {
+      isvalid=false;
+   errMsg += '&bull;&nbsp;&nbsp;Please Select Departure Date.<br/>';
+  }
+  if($('input[name="flight_type"]:checked').val()==="Round Trip"){
+      if($("#return_date").val()===""){
+          isvalid=false;
+         errMsg += '&bull;&nbsp;&nbsp;Please Select Return Date.<br/>';
+      }
+  }
+  if($("#name").val()===""){
+      isvalid=false;
+      errMsg += '&bull;&nbsp;&nbsp;Please Provide Customer Name.<br/>';
+  }
+      if($("#email").val()===""){
+          isvalid=false;
+          errMsg += '&bull;&nbsp;&nbsp;Please Provide Customer Email.<br/>';
+      }else if(validate_email($("#email").val())===false){
+          isvalid=false;
+          errMsg += '&bull;&nbsp;&nbsp;Please Enter Valid Email.<br/>';
+      }
+  if($("#phone").val()===""){
+      isvalid=false;
+      errMsg += '&bull;&nbsp;&nbsp;Please Provide Valid Contact.<br/>';
+  }
+  if (isvalid===true) {
+   $("#request_callback").submit();
+  }else{
+      bootbox.alert(errMsg);
+  }
+}
